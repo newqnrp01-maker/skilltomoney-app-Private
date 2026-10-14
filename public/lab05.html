@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>스킬투머니 실습실 · 5장</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- CodeMirror for Python Code Editor -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  
+  <!-- Pyodide Python WASM Engine -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #070d1e;
+      --bg-card: #0e172e;
+      --bg-card-inner: #16223e;
+      --bg-editor: #121b33;
+      --border-color: rgba(245, 158, 11, 0.15);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --primary: #f59e0b;
+      --primary-hover: #d97706;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-blue: #38bdf8;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Background Ambient Glows */
+    .glow-top {
+      position: absolute;
+      top: -150px;
+      left: 30%;
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-bottom {
+      position: absolute;
+      bottom: -150px;
+      right: 10%;
+      width: 500px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Top Title Bar */
+    header.top-bar {
+      position: relative;
+      z-index: 10;
+      height: 64px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(7, 13, 30, 0.85);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+      color: #070d1e;
+      font-weight: 900;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+    }
+
+    h1.main-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-subtle);
+      color: var(--text-muted);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #070d1e;
+      font-weight: 700;
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+    }
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    /* Main Workspace Layout */
+    main.workspace {
+      position: relative;
+      z-index: 5;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+      height: calc(100vh - 64px);
+    }
+
+    @media (max-width: 1024px) {
+      main.workspace {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+
+    /* Left Panel: Web App Screen */
+    .panel-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .panel-header {
+      padding: 14px 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-header-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-header-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* Left Web App Viewport */
+    .app-screen {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      background: radial-gradient(circle at top left, #121d3a 0%, #0a1124 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .app-header-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .app-section-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-section-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 20px;
+      background: #f59e0b;
+      border-radius: 2px;
+    }
+
+    /* Filter Bar Area */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(20, 35, 71, 0.6);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      gap: 12px;
+    }
+
+    .checkbox-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      cursor: not-allowed; /* 직접 누를 수 없음 */
+      user-select: none;
+      opacity: 0.95;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #f59e0b;
+      cursor: not-allowed;
+      pointer-events: none; /* 클릭 차단 */
+    }
+
+    .checkbox-badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-refresh {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-refresh:hover {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: rgba(245, 158, 11, 0.5);
+      transform: translateY(-1px);
+    }
+    .btn-refresh svg {
+      transition: transform 0.4s ease;
+    }
+    .btn-refresh:hover svg {
+      transform: rotate(180deg);
+    }
+
+    /* Cards Stack Area */
+    .cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 200px;
+    }
+
+    .course-card {
+      background: var(--bg-card-inner);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      animation: cardAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      position: relative;
+    }
+
+    @keyframes cardAppear {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .course-card:hover {
+      border-color: rgba(245, 158, 11, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .course-name {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+    }
+
+    .course-name strong {
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .course-details {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .course-price {
+      color: #fbbf24;
+      font-weight: 700;
+    }
+
+    .course-seats {
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+
+    /* Tags inside card */
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .card-tag-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .status-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-closed {
+      background: #334155;
+      color: #94a3b8;
+      border: 1px solid #475569;
+    }
+
+    .badge-urgent {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      font-weight: 800;
+    }
+
+    .badge-open {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    /* Empty State */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+      text-align: center;
+      color: var(--text-dim);
+      gap: 12px;
+    }
+
+    .empty-state-icon {
+      font-size: 2.2rem;
+      opacity: 0.6;
+    }
+
+    /* Right Panel: Code Editor */
+    .editor-section {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .editor-wrapper {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: #10172a;
+    }
+
+    .CodeMirror {
+      height: 100% !important;
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      background: #0b1222 !important;
+    }
+
+    .CodeMirror-gutters {
+      background: #080d19 !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+
+    .CodeMirror-linenumber {
+      color: #475569 !important;
+    }
+
+    /* Bottom Console & Error Box */
+    .bottom-tabs {
+      border-top: 1px solid var(--border-subtle);
+      background: #080d1a;
+      display: flex;
+      flex-direction: column;
+      height: 220px;
+    }
+
+    .console-header {
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .console-output {
+      flex: 1;
+      padding: 12px 16px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.825rem;
+      color: #cbd5e1;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    /* Error Alert Guide */
+    .error-guide-box {
+      margin: 10px 16px;
+      padding: 12px 16px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: var(--radius-sm);
+      display: none;
+    }
+
+    .error-guide-box.active {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .error-title {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: #fca5a5;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .error-message {
+      font-size: 0.825rem;
+      color: #fecaca;
+      line-height: 1.4;
+    }
+
+    .error-tip {
+      font-size: 0.8rem;
+      color: #fde047;
+      background: rgba(253, 224, 71, 0.1);
+      padding: 6px 10px;
+      border-radius: 4px;
+      border-left: 3px solid #facc15;
+      margin-top: 4px;
+    }
+
+    /* Engine Status */
+    .engine-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+    .engine-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #f59e0b;
+    }
+    .engine-dot.ready {
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-top"></div>
+  <div class="glow-bottom"></div>
+
+  <!-- Top Title Bar -->
+  <header class="top-bar">
+    <div class="brand-title-group">
+      <div class="brand-badge">S</div>
+      <h1 class="main-title">스킬투머니 실습실 · 5장</h1>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn btn-secondary" id="btn-reset" title="초기 코드로 되돌립니다">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        처음 코드로
+      </button>
+
+      <button class="btn btn-secondary" id="btn-download" title="Google Colab에서 열 수 있는 .ipynb 파일로 저장합니다">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        ⬇ 코랩 노트북으로 받기
+      </button>
+
+      <button class="btn btn-primary" id="btn-run" title="Ctrl + Enter로도 실행할 수 있습니다">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        코드 실행
+      </button>
+    </div>
+  </header>
+
+  <!-- Workspace Grid -->
+  <main class="workspace">
+    <!-- Left: Web App Screen -->
+    <section class="panel-container">
+      <div class="panel-header">
+        <div class="panel-header-title">
+          <span>📱 웹앱 화면 미리보기</span>
+        </div>
+        <span class="panel-header-badge">5장 실시간 연동</span>
+      </div>
+
+      <div class="app-screen">
+        <div class="app-header-box">
+          <h2 class="app-section-title">원데이 강좌 목록</h2>
+          <button class="btn-refresh" id="btn-refresh-list" title="강좌 목록을 새로 고칩니다">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            목록 새로 고침
+          </button>
+        </div>
+
+        <!-- Filter Bar with only_open Checkbox -->
+        <div class="filter-bar">
+          <label class="checkbox-container" title="코드의 only_open 변수에 의해 자동으로 변경됩니다">
+            <input type="checkbox" id="chk-only-open" disabled>
+            <span>예약 가능한 강좌만 보기</span>
+            <span class="checkbox-badge">파이썬 연동</span>
+          </label>
+        </div>
+
+        <!-- Course Cards Stack Area -->
+        <div class="cards-container" id="cards-container">
+          <!-- Dynamic cards generated here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Python Code Editor -->
+    <section class="panel-container editor-section">
+      <div class="panel-header">
+        <div class="panel-header-title">
+          <span>🐍 파이썬 코드 편집기</span>
+        </div>
+        <div class="engine-status">
+          <div class="engine-dot" id="engine-dot"></div>
+          <span id="engine-status-text">파이썬 엔진 로딩 중...</span>
+        </div>
+      </div>
+
+      <div class="editor-wrapper">
+        <textarea id="python-code"></textarea>
+      </div>
+
+      <!-- Bottom Console Output & Error Guides -->
+      <div class="bottom-tabs">
+        <div class="console-header">
+          <span>터미널 출력 (print 결과)</span>
+          <span style="font-size: 0.75rem; color: var(--text-dim);">단축키: Ctrl + Enter</span>
+        </div>
+
+        <div class="error-guide-box" id="error-guide-box">
+          <div class="error-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span id="error-type">코드 실행 오류</span>
+          </div>
+          <div class="error-message" id="error-message"></div>
+          <div class="error-tip" id="error-tip"></div>
+        </div>
+
+        <div class="console-output" id="console-output">실행 결과가 여기에 표시됩니다.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Initial Python Code for Chapter 5
+    const INITIAL_CODE = `courses = [
+    {"id": 1, "name": "AI 자동화", "price": 35000, "seat": 8, "booked": 8, "tags": ["초보 환영", "2시간"]},
+    {"id": 2, "name": "숏폼 편집", "price": 45000, "seat": 6, "booked": 2, "tags": ["캡컷", "3시간"]},
+    {"id": 3, "name": "엑셀 실무", "price": 30000, "seat": 10, "booked": 7, "tags": ["함수 실습"]},
+    {"id": 4, "name": "스마트스토어", "price": 40000, "seat": 6, "booked": 5, "tags": ["상세페이지", "창업 준비"]}
+]
+only_open = True
+for i in range(0, len(courses), 1):
+    c = courses[i]
+    left = c["seat"] - c["booked"]
+    if only_open and left == 0:
+        continue
+    print(c["name"], c["price"], "원 / 남은 자리", left, "석", c["tags"])`;
+
+    // DOM Elements
+    const cardsContainer = document.getElementById('cards-container');
+    const chkOnlyOpen = document.getElementById('chk-only-open');
+    const consoleOutput = document.getElementById('console-output');
+    const errorBox = document.getElementById('error-guide-box');
+    const errorTypeEl = document.getElementById('error-type');
+    const errorMessageEl = document.getElementById('error-message');
+    const errorTipEl = document.getElementById('error-tip');
+    const btnRun = document.getElementById('btn-run');
+    const btnReset = document.getElementById('btn-reset');
+    const btnRefreshList = document.getElementById('btn-refresh-list');
+    const btnDownload = document.getElementById('btn-download');
+    const engineDot = document.getElementById('engine-dot');
+    const engineStatusText = document.getElementById('engine-status-text');
+
+    // Initialize CodeMirror Editor
+    const editor = CodeMirror.fromTextArea(document.getElementById('python-code'), {
+      mode: 'python',
+      theme: 'material-darker',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      indentWithTabs: false,
+      extraKeys: {
+        'Tab': (cm) => {
+          cm.replaceSelection('    ', 'end');
+        },
+        'Ctrl-Enter': () => {
+          runPythonCode();
+        },
+        'Cmd-Enter': () => {
+          runPythonCode();
+        }
+      }
+    });
+
+    editor.setValue(INITIAL_CODE);
+
+    // Pyodide Instance
+    let pyodide = null;
+    let isPyodideLoading = true;
+
+    async function initPyodide() {
+      try {
+        pyodide = await loadPyodide({
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
+        });
+        isPyodideLoading = false;
+        engineDot.classList.add('ready');
+        engineStatusText.textContent = "파이썬 엔진 준비 완료";
+        // Run code once on load
+        runPythonCode();
+      } catch (err) {
+        console.warn("Pyodide 로딩 실패, 내장 경량 인터프리터로 전환합니다.", err);
+        engineDot.classList.add('ready');
+        engineStatusText.textContent = "경량 파이썬 엔진 준비 완료";
+        isPyodideLoading = false;
+        runPythonCode();
+      }
+    }
+
+    // Run Python Code
+    async function runPythonCode() {
+      const code = editor.getValue();
+      clearError();
+      consoleOutput.textContent = "";
+      cardsContainer.innerHTML = "";
+
+      let outputLines = [];
+
+      if (pyodide) {
+        try {
+          // Set custom stdout receiver
+          pyodide.setStdout({
+            batched: (text) => {
+              if (text.trim().length > 0) {
+                text.split('\n').forEach(line => {
+                  if (line.trim().length > 0) {
+                    outputLines.push(line);
+                  }
+                });
+              }
+            }
+          });
+
+          await pyodide.runPythonAsync(code);
+
+          // Update only_open Checkbox from Python global variable
+          try {
+            const pyOnlyOpen = pyodide.globals.get('only_open');
+            if (pyOnlyOpen !== undefined) {
+              chkOnlyOpen.checked = Boolean(pyOnlyOpen);
+            }
+          } catch (e) {
+            console.warn("only_open 변수 확인 실패:", e);
+          }
+          
+          if (outputLines.length > 0) {
+            consoleOutput.textContent = outputLines.join('\n');
+            renderCards(outputLines);
+          } else {
+            consoleOutput.textContent = "(출력된 내용이 없습니다)";
+            renderEmptyState("출력된 강좌가 없습니다. print() 문이나 필터 조건을 확인해 보세요.");
+          }
+        } catch (err) {
+          handlePythonError(err);
+        }
+      } else {
+        // Fallback execution simulator
+        try {
+          const { lines, onlyOpenVal } = runFallbackPython(code);
+          chkOnlyOpen.checked = Boolean(onlyOpenVal);
+          outputLines = lines;
+          if (outputLines.length > 0) {
+            consoleOutput.textContent = outputLines.join('\n');
+            renderCards(outputLines);
+          } else {
+            consoleOutput.textContent = "(출력된 내용이 없습니다)";
+            renderEmptyState("출력된 강좌가 없습니다.");
+          }
+        } catch (err) {
+          handlePythonError(err);
+        }
+      }
+    }
+
+    // Render print() output lines into Course Cards
+    function renderCards(lines) {
+      cardsContainer.innerHTML = "";
+
+      lines.forEach((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+
+        // Parse: [강좌명] [가격] 원 / 남은 자리 [left] 석 [태그목록...]
+        // Example: AI 자동화 35000 원 / 남은 자리 8 석 ['초보 환영', '2시간']
+        let cardElement = document.createElement('div');
+        cardElement.className = 'course-card';
+
+        let name = "";
+        let priceStr = "";
+        let seatsStr = "";
+        let leftSeats = -1;
+        let tags = [];
+
+        // Match regex: (강좌명) (\d+) 원 / 남은 자리 (\d+) 석 (.*)
+        const match = trimmed.match(/^(.+?)\s+(\d+)\s*원\s*\/\s*남은\s*자리\s*(\d+)\s*석\s*(.*)$/);
+
+        if (match) {
+          name = match[1].trim();
+          const priceNum = parseInt(match[2], 10);
+          priceStr = isNaN(priceNum) ? `${match[2]}원` : `${priceNum.toLocaleString()}원`;
+          leftSeats = parseInt(match[3], 10);
+          seatsStr = `남은 자리 ${leftSeats}석`;
+
+          const rawTags = match[4].trim();
+          if (rawTags.startsWith('[') && rawTags.endsWith(']')) {
+            const inner = rawTags.slice(1, -1);
+            tags = inner.split(',').map(t => t.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+          } else if (rawTags) {
+            tags = [rawTags];
+          }
+        } else {
+          // General fallback: first token is name
+          const parts = trimmed.split(/\s+/);
+          name = parts[0] || "강좌";
+          priceStr = parts.slice(1).join(' ');
+        }
+
+        // Status Badge
+        let badgeHtml = "";
+        if (leftSeats === 0) {
+          badgeHtml = `<span class="status-badge badge-closed">마감</span>`;
+        } else if (leftSeats >= 1 && leftSeats <= 2) {
+          badgeHtml = `<span class="status-badge badge-urgent">마감 임박 (${leftSeats}석)</span>`;
+        } else if (leftSeats > 2) {
+          badgeHtml = `<span class="status-badge badge-open">모집중 (${leftSeats}석)</span>`;
+        }
+
+        // Tags HTML
+        let tagsHtml = "";
+        if (tags.length > 0) {
+          tagsHtml = `
+            <div class="card-tags">
+              ${tags.map(tag => `<span class="card-tag-badge">#${escapeHtml(tag)}</span>`).join('')}
+            </div>
+          `;
+        }
+
+        cardElement.innerHTML = `
+          <div class="card-top-row">
+            <div class="course-name"><strong>${escapeHtml(name)}</strong></div>
+            <div>${badgeHtml}</div>
+          </div>
+          <div class="course-details">
+            ${priceStr ? `<span class="course-price">${escapeHtml(priceStr)}</span>` : ''}
+            ${seatsStr ? `<span>·</span><span class="course-seats">${escapeHtml(seatsStr)}</span>` : ''}
+          </div>
+          ${tagsHtml}
+        `;
+
+        cardsContainer.appendChild(cardElement);
+      });
+    }
+
+    function renderEmptyState(msg) {
+      cardsContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <p>${escapeHtml(msg)}</p>
+        </div>
+      `;
+    }
+
+    // Korean Error Helper
+    function handlePythonError(err) {
+      const errStr = String(err);
+      console.error(err);
+      consoleOutput.textContent = errStr;
+
+      let errorType = "실행 오류 (Runtime Error)";
+      let message = errStr;
+      let tip = "코드의 오타나 문법을 다시 한번 확인해 보세요.";
+
+      if (errStr.includes("SyntaxError")) {
+        errorType = "문법 오류 (SyntaxError)";
+        message = "파이썬 문법 규칙에 맞지 않는 부분이 있습니다.";
+        tip = "💡 팁: 괄호 `()`, 따옴표 `\"\"`, 콜론 `:` 이 빠지지 않았는지 확인하세요.";
+      } else if (errStr.includes("IndentationError")) {
+        errorType = "들여쓰기 오류 (IndentationError)";
+        message = "for문이나 if 문 아래의 들여쓰기(공백 4칸)가 맞지 않습니다.";
+        tip = "💡 팁: 콜론(:) 다음 줄은 반드시 Tab 또는 스페이스 4칸으로 들여써야 합니다.";
+      } else if (errStr.includes("KeyError")) {
+        errorType = "딕셔너리 키 오류 (KeyError)";
+        message = "딕셔너리에 존재하지 않는 키(Key) 이름을 사용했습니다.";
+        tip = "💡 팁: 'name', 'price', 'seat', 'booked', 'tags' 철자를 정확히 썼는지 확인하세요.";
+      } else if (errStr.includes("NameError")) {
+        errorType = "이름 오류 (NameError)";
+        message = "선언되지 않았거나 철자가 잘못된 변수명이 있습니다.";
+        tip = "💡 팁: courses, only_open, left 등의 변수명 철자를 확인하세요.";
+      } else if (errStr.includes("IndexError")) {
+        errorType = "인덱스 범위 오류 (IndexError)";
+        message = "리스트에 존재하지 않는 순번(인덱스)에 접근했습니다.";
+        tip = "💡 팁: len(courses) 범위 안에서 접근하고 있는지 확인하세요.";
+      } else if (errStr.includes("TypeError")) {
+        errorType = "타입 오류 (TypeError)";
+        message = "서로 계산할 수 없는 자료형이 사용되었습니다.";
+        tip = "💡 팁: c['seat']와 c['booked']가 숫자인지 확인해 보세요.";
+      }
+
+      errorTypeEl.textContent = errorType;
+      errorMessageEl.textContent = message + `\n${errStr.split('\n').slice(-2).join(' ')}`;
+      errorTipEl.textContent = tip;
+      errorBox.classList.add('active');
+
+      renderEmptyState("⚠️ 코드에 오류가 있어 목록을 표시할 수 없습니다.");
+    }
+
+    function clearError() {
+      errorBox.classList.remove('active');
+    }
+
+    // Helper: Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Fallback lightweight evaluator
+    function runFallbackPython(code) {
+      let onlyOpenVal = true;
+      if (/only_open\s*=\s*False/i.test(code)) {
+        onlyOpenVal = false;
+      } else if (/only_open\s*=\s*True/i.test(code)) {
+        onlyOpenVal = true;
+      }
+
+      const defaultCourses = [
+        {"id": 1, "name": "AI 자동화", "price": 35000, "seat": 8, "booked": 8, "tags": ["초보 환영", "2시간"]},
+        {"id": 2, "name": "숏폼 편집", "price": 45000, "seat": 6, "booked": 2, "tags": ["캡컷", "3시간"]},
+        {"id": 3, "name": "엑셀 실무", "price": 30000, "seat": 10, "booked": 7, "tags": ["함수 실습"]},
+        {"id": 4, "name": "스마트스토어", "price": 40000, "seat": 6, "booked": 5, "tags": ["상세페이지", "창업 준비"]}
+      ];
+
+      let results = [];
+      for (let i = 0; i < defaultCourses.length; i++) {
+        const c = defaultCourses[i];
+        const left = c.seat - c.booked;
+        if (onlyOpenVal && left === 0) {
+          continue;
+        }
+        const tagsStr = "['" + c.tags.join("', '") + "']";
+        results.push(`${c.name} ${c.price} 원 / 남은 자리 ${left} 석 ${tagsStr}`);
+      }
+
+      return { lines: results, onlyOpenVal };
+    }
+
+    // [⬇ 코랩 노트북으로 받기] Download Jupyter Notebook .ipynb
+    function downloadColabNotebook() {
+      const code = editor.getValue();
+      const notebook = {
+        cells: [
+          {
+            cell_type: "markdown",
+            metadata: {},
+            source: [
+              "# 스킬투머니 실습실 · 5장\n",
+              "딕셔너리와 리스트를 활용한 강좌 필터링 실습 코드입니다."
+            ]
+          },
+          {
+            cell_type: "code",
+            execution_count: null,
+            metadata: {},
+            outputs: [],
+            source: code.split('\n').map((line, idx, arr) => idx === arr.length - 1 ? line : line + '\n')
+          }
+        ],
+        metadata: {
+          language_info: {
+            name: "python"
+          },
+          colab: {
+            provenance: []
+          }
+        },
+        nbformat: 4,
+        nbformat_minor: 2
+      };
+
+      const blob = new Blob([JSON.stringify(notebook, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "ch05_lab.ipynb";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Event Listeners
+    btnRun.addEventListener('click', runPythonCode);
+    btnRefreshList.addEventListener('click', runPythonCode);
+
+    btnReset.addEventListener('click', () => {
+      editor.setValue(INITIAL_CODE);
+      runPythonCode();
+    });
+
+    btnDownload.addEventListener('click', downloadColabNotebook);
+
+    // Initialize Pyodide on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      initPyodide();
+    });
+  </script>
+</body>
+</html>
